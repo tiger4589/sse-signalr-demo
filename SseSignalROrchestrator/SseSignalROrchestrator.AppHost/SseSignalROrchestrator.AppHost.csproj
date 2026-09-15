@@ -9,4 +9,9 @@
     <UserSecretsId>f653e6c5-b13f-41ad-bde4-6ebb0df9a6af</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\SignalRApi\SignalRApi.csproj" />
+    <ProjectReference Include="..\..\SseApi\SseApi.csproj" />
+  </ItemGroup>
+
 </Project>
