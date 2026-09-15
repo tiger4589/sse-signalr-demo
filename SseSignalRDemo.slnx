@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="BlazorDemoFirstPart/BlazorDemoFirstPart.csproj" Id="f32b2e50-0b8e-482f-99df-f5107e93f9b2" />
+  <Project Path="BlazorDemoThirdPart/BlazorDemoThirdPart.csproj" />
   <Project Path="DotNet10Api/DotNet10Api.csproj" Id="60ff8364-86e3-47a1-b4de-fcd8604e3f1e" />
   <Project Path="DotNet9Api/DotNet9Api.csproj" Id="cea312e5-c607-40a6-bfc6-88bee8811042" />
   <Project Path="SignalRApi/SignalRApi.csproj" />
