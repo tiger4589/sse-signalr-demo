@@ -3,6 +3,25 @@ using System.Runtime.CompilerServices;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalBlazor", policy =>
+    {
+        policy
+            .SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin))
+                {
+                    return false;
+                }
+
+                return Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
+                       uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
@@ -12,6 +31,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowLocalBlazor");
 
 app.MapGet("/events", (CancellationToken cancellationToken) =>
 {
@@ -22,7 +42,14 @@ app.MapGet("/events", (CancellationToken cancellationToken) =>
         while (!cancellationToken.IsCancellationRequested)
         {
             yield return counter++;
-            await Task.Delay(1000, cancellationToken);
+            try
+            {
+                await Task.Delay(1000, cancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                break;
+            }
         }
     }
 

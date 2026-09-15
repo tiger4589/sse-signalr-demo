@@ -1,0 +1,5 @@
+const source = new EventSource("http://localhost:4502/events");
+
+source.onmessage = (e) => {
+  console.log(e.data);
+};
