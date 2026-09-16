@@ -10,6 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\BlazorDemoThirdPart\BlazorDemoThirdPart.csproj" />
+    <ProjectReference Include="..\..\EventProducerApi\EventProducerApi.csproj" />
     <ProjectReference Include="..\..\SignalRApi\SignalRApi.csproj" />
     <ProjectReference Include="..\..\SseApi\SseApi.csproj" />
   </ItemGroup>

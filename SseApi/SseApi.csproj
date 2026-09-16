@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DemoShared\DemoShared.csproj" />
     <ProjectReference Include="..\SseSignalROrchestrator\SseSignalROrchestrator.ServiceDefaults\SseSignalROrchestrator.ServiceDefaults.csproj" />
   </ItemGroup>
 
