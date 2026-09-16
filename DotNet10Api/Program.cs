@@ -36,15 +36,15 @@ app.UseCors("AllowLocalBlazor");
 app.MapGet("/events", (CancellationToken cancellationToken) =>
 {
     async IAsyncEnumerable<int> GetCounter(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken internalCancellationToken)
     {
         var counter = 0;
-        while (!cancellationToken.IsCancellationRequested)
+        while (!internalCancellationToken.IsCancellationRequested)
         {
             yield return counter++;
             try
             {
-                await Task.Delay(1000, cancellationToken);
+                await Task.Delay(1000, internalCancellationToken);
             }
             catch (TaskCanceledException)
             {
