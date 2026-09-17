@@ -23,31 +23,28 @@ public sealed class SignalRMessageDispatcher
             return;
         }
 
+        var groups = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         if (!string.IsNullOrWhiteSpace(demoEvent.UserId))
         {
-            _logger.LogInformation("[SignalR] Sending {EventType} to user:{UserId}", demoEvent.Type, demoEvent.UserId);
-            await _hubContext.Clients.Group(SignalRGroupNames.User(demoEvent.UserId)).SendAsync("ReceiveEvent", demoEvent, cancellationToken);
-            return;
+            groups.Add(SignalRGroupNames.User(demoEvent.UserId));
         }
 
         if (!string.IsNullOrWhiteSpace(demoEvent.TargetRole))
         {
-            _logger.LogInformation("[SignalR] Sending {EventType} to role:{Role}", demoEvent.Type, demoEvent.TargetRole);
-            await _hubContext.Clients.Group(SignalRGroupNames.Role(demoEvent.TargetRole)).SendAsync("ReceiveEvent", demoEvent, cancellationToken);
-            return;
+            groups.Add(SignalRGroupNames.Role(demoEvent.TargetRole));
         }
 
         var eventType = demoEvent.Type.ToFriendlyName();
         if (!string.IsNullOrWhiteSpace(demoEvent.Warehouse))
         {
-            var group = SignalRGroupNames.WarehouseEvent(demoEvent.Warehouse, eventType);
-            _logger.LogInformation("[SignalR] Sending {EventType} to group:{Group}", demoEvent.Type, group);
-            await _hubContext.Clients.Group(group).SendAsync("ReceiveEvent", demoEvent, cancellationToken);
-            return;
+            groups.Add(SignalRGroupNames.Warehouse(demoEvent.Warehouse));
         }
 
-        var eventTypeGroup = SignalRGroupNames.EventType(eventType);
-        _logger.LogInformation("[SignalR] Sending {EventType} to group:{Group}", demoEvent.Type, eventTypeGroup);
-        await _hubContext.Clients.Group(eventTypeGroup).SendAsync("ReceiveEvent", demoEvent, cancellationToken);
+        groups.Add(SignalRGroupNames.EventType(eventType));
+
+        var targetGroups = groups.ToList();
+        _logger.LogInformation("[SignalR] Sending {EventType} to groups:{Groups}", demoEvent.Type, string.Join(", ", targetGroups));
+        await _hubContext.Clients.Groups(targetGroups).SendAsync("ReceiveEvent", demoEvent, cancellationToken);
     }
 }

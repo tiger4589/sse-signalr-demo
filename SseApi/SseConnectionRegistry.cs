@@ -77,42 +77,21 @@ public sealed class SseConnectionRegistry
 
     public IEnumerable<SseConnectionState> GetTargets(DemoEvent demoEvent)
     {
+        var eventType = demoEvent.Type.ToFriendlyName();
+
         foreach (var state in _connections.Values)
         {
-            if (demoEvent.BroadcastToEveryone)
-            {
-                yield return state;
-                continue;
-            }
+            var user = DemoUserCatalog.Get(state.UserId);
+            var matchesUser = !string.IsNullOrWhiteSpace(demoEvent.UserId) &&
+                              string.Equals(state.UserId, demoEvent.UserId, StringComparison.OrdinalIgnoreCase);
+            var matchesRole = !string.IsNullOrWhiteSpace(demoEvent.TargetRole) &&
+                              user is not null &&
+                              string.Equals(user.Role, demoEvent.TargetRole, StringComparison.OrdinalIgnoreCase);
+            var matchesWarehouse = !string.IsNullOrWhiteSpace(demoEvent.Warehouse) &&
+                                   state.Warehouses.Contains(demoEvent.Warehouse);
+            var matchesEventType = state.EventTypes.Contains(eventType);
 
-            if (!string.IsNullOrWhiteSpace(demoEvent.UserId) && string.Equals(state.UserId, demoEvent.UserId, StringComparison.OrdinalIgnoreCase))
-            {
-                yield return state;
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(demoEvent.TargetRole))
-            {
-                var user = DemoUserCatalog.Get(state.UserId);
-                if (user is not null && string.Equals(user.Role, demoEvent.TargetRole, StringComparison.OrdinalIgnoreCase))
-                {
-                    yield return state;
-                }
-
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(demoEvent.Warehouse) && state.Warehouses.Contains(demoEvent.Warehouse))
-            {
-                if (state.EventTypes.Contains(demoEvent.Type.ToFriendlyName()))
-                {
-                    yield return state;
-                }
-
-                continue;
-            }
-
-            if (state.EventTypes.Contains(demoEvent.Type.ToFriendlyName()))
+            if (demoEvent.BroadcastToEveryone || matchesUser || matchesRole || matchesWarehouse || matchesEventType)
             {
                 yield return state;
             }

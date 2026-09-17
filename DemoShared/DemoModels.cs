@@ -64,7 +64,6 @@ public static class DemoUserCatalog
 public static class DemoWarehouseCatalog
 {
     public static readonly IReadOnlyList<string> Warehouses = ["Brussels", "Antwerp", "Ghent"];
-    public static readonly IReadOnlyList<string> EventTypeNames = ["Orders", "Shipments", "Payments", "Maintenance", "System Alerts"];
 }
 
 public static class DemoEventTypeExtensions
@@ -79,6 +78,16 @@ public static class DemoEventTypeExtensions
         DemoEventType.UserNotification => "User Notifications",
         _ => type.ToString()
     };
+
+    public static string ToFriendlyEventTypeName(this string eventTypeName)
+    {
+        if (Enum.TryParse<DemoEventType>(eventTypeName, true, out var parsed))
+        {
+            return parsed.ToFriendlyName();
+        }
+
+        return eventTypeName;
+    }
 }
 
 public static class DemoEventFactory

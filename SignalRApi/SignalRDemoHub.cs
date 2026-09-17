@@ -46,10 +46,7 @@ public sealed class SignalRDemoHub : Hub
         }
 
         var normalizedWarehouse = warehouse.Trim();
-        foreach (var eventType in DemoWarehouseCatalog.EventTypeNames)
-        {
-            await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroupNames.WarehouseEvent(normalizedWarehouse, eventType));
-        }
+        await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroupNames.Warehouse(normalizedWarehouse));
 
         _logger.LogInformation("[SignalR] Connection {ConnectionId} joined warehouse:{Warehouse}", Context.ConnectionId, normalizedWarehouse);
     }
@@ -62,10 +59,7 @@ public sealed class SignalRDemoHub : Hub
         }
 
         var normalizedWarehouse = warehouse.Trim();
-        foreach (var eventType in DemoWarehouseCatalog.EventTypeNames)
-        {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, SignalRGroupNames.WarehouseEvent(normalizedWarehouse, eventType));
-        }
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, SignalRGroupNames.Warehouse(normalizedWarehouse));
 
         _logger.LogInformation("[SignalR] Connection {ConnectionId} left warehouse:{Warehouse}", Context.ConnectionId, normalizedWarehouse);
     }

@@ -32,6 +32,7 @@
 
             <div class="group-box">
                 <h3>Warehouses</h3>
+                <div class="helper-text">Any selected warehouse or event type can match delivery.</div>
                 @foreach (var warehouse in DemoWarehouseCatalog.Warehouses)
                 {
                     <label class="check-item">
@@ -45,7 +46,7 @@
                 <h3>Event Types</h3>
                 @foreach (var eventType in Enum.GetNames<DemoEventType>())
                 {
-                    var friendlyName = ToFriendlyEventName(eventType);
+                    var friendlyName = eventType.ToFriendlyEventTypeName();
                     <label class="check-item">
                         <input type="checkbox" checked="@_signalrEventTypes.Contains(friendlyName)" @onchange="() => ToggleSignalREventTypeAsync(friendlyName)" />
                         <span>@friendlyName</span>
@@ -75,6 +76,7 @@
 
             <div class="group-box">
                 <h3>Warehouses</h3>
+                <div class="helper-text">Any selected warehouse or event type can match delivery.</div>
                 @foreach (var warehouse in DemoWarehouseCatalog.Warehouses)
                 {
                     <label class="check-item">
@@ -88,7 +90,7 @@
                 <h3>Event Types</h3>
                 @foreach (var eventType in Enum.GetNames<DemoEventType>())
                 {
-                    var friendlyName = ToFriendlyEventName(eventType);
+                    var friendlyName = eventType.ToFriendlyEventTypeName();
                     <label class="check-item">
                         <input type="checkbox" checked="@_sseEventTypes.Contains(friendlyName)" @onchange="() => ToggleSseEventTypeAsync(friendlyName)" />
                         <span>@friendlyName</span>
@@ -203,6 +205,12 @@
         gap: 0.5rem;
         align-items: center;
         margin: 0.35rem 0;
+    }
+
+    .helper-text {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-bottom: 0.45rem;
     }
 
     .log {
@@ -563,17 +571,6 @@
         _sseEvents.Clear();
         await Task.CompletedTask;
     }
-
-    private static string ToFriendlyEventName(string name) => name switch
-    {
-        "OrderCreated" => "Orders",
-        "ShipmentDelayed" => "Shipments",
-        "PaymentReceived" => "Payments",
-        "MaintenanceStarted" => "Maintenance",
-        "SystemAlert" => "System Alerts",
-        "UserNotification" => "User Notifications",
-        _ => name
-    };
 
     public async ValueTask DisposeAsync()
     {
