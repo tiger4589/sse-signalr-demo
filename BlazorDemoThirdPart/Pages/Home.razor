@@ -32,7 +32,7 @@
 
             <div class="group-box">
                 <h3>Event Types</h3>
-                <div class="helper-text">Events are routed by user, role, and selected event type.</div>
+                <div class="helper-text">Events are routed to exactly one target: user, role, event type, or broadcast.</div>
                 @foreach (var eventType in Enum.GetNames<DemoEventType>())
                 {
                     var friendlyName = eventType.ToFriendlyEventTypeName();
@@ -46,7 +46,7 @@
             <div class="log">
                 @foreach (var demoEvent in _signalrEvents)
                 {
-                    <div class="event-item @(demoEvent.UserId == SignalRUserId ? "relevant" : "normal")">
+                    <div class="event-item @(IsRelevantForClient(demoEvent, SignalRUserId, _signalrEventTypes) ? "relevant" : "normal")">
                         <div class="event-time">@demoEvent.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
                         <div class="event-name">@demoEvent.Type</div>
                         <div class="event-meta">Target: @(demoEvent.TargetLabel)</div>
@@ -64,7 +64,7 @@
 
             <div class="group-box">
                 <h3>Event Types</h3>
-                <div class="helper-text">Events are routed by user, role, and selected event type.</div>
+                <div class="helper-text">Events are routed to exactly one target: user, role, event type, or broadcast.</div>
                 @foreach (var eventType in Enum.GetNames<DemoEventType>())
                 {
                     var friendlyName = eventType.ToFriendlyEventTypeName();
@@ -78,7 +78,7 @@
             <div class="log">
                 @foreach (var demoEvent in _sseEvents)
                 {
-                    <div class="event-item @(demoEvent.UserId == SseUserId ? "relevant" : "normal")">
+                    <div class="event-item @(IsRelevantForClient(demoEvent, SseUserId, _sseEventTypes) ? "relevant" : "normal")">
                         <div class="event-time">@demoEvent.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
                         <div class="event-name">@demoEvent.Type</div>
                         <div class="event-meta">Target: @(demoEvent.TargetLabel)</div>
@@ -282,6 +282,20 @@
 
     private static string SignalRUserSummary => BuildUserSummary(SignalRUserId);
     private static string SseUserSummary => BuildUserSummary(SseUserId);
+    private static bool IsRelevantForClient(DemoEvent demoEvent, string currentUserId, HashSet<string> subscriptions)
+    {
+        var currentUser = DemoUserCatalog.Get(currentUserId);
+        return demoEvent.Target.Kind switch
+        {
+            DemoTargetKind.Broadcast => true,
+            DemoTargetKind.User => string.Equals(demoEvent.Target.Value, currentUserId, StringComparison.OrdinalIgnoreCase),
+            DemoTargetKind.Role => currentUser is not null &&
+                                   string.Equals(demoEvent.Target.Value, currentUser.Role, StringComparison.OrdinalIgnoreCase),
+            DemoTargetKind.EventType => !string.IsNullOrWhiteSpace(demoEvent.Target.Value) &&
+                                        subscriptions.Contains(demoEvent.Target.Value),
+            _ => false
+        };
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 namespace DemoShared;
 
 public enum DemoEventType
@@ -28,20 +26,57 @@ public sealed record DemoUser(
     string Name,
     string Role);
 
+public enum DemoTargetKind
+{
+    User,
+    Role,
+    EventType,
+    Broadcast
+}
+
+public sealed record DemoEventTarget(DemoTargetKind Kind, string? Value = null)
+{
+    public static DemoEventTarget User(string userId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        return new DemoEventTarget(DemoTargetKind.User, userId);
+    }
+
+    public static DemoEventTarget Role(string role)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(role);
+        return new DemoEventTarget(DemoTargetKind.Role, role);
+    }
+
+    public static DemoEventTarget EventType(string eventType)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
+        return new DemoEventTarget(DemoTargetKind.EventType, eventType);
+    }
+
+    public static DemoEventTarget EventType(DemoEventType eventType) =>
+        EventType(eventType.ToFriendlyName());
+
+    public static DemoEventTarget Broadcast() => new(DemoTargetKind.Broadcast);
+
+    public string Label => Kind switch
+    {
+        DemoTargetKind.User => $"User:{Value}",
+        DemoTargetKind.Role => $"Role:{Value}",
+        DemoTargetKind.EventType => $"EventType:{Value}",
+        DemoTargetKind.Broadcast => "Everyone",
+        _ => "Unknown"
+    };
+}
+
 public sealed record DemoEvent(
     Guid Id,
     DemoEventType Type,
-    string? UserId,
-    string? TargetRole,
     DateTimeOffset Timestamp,
     string Message,
-    bool BroadcastToEveryone = false)
+    DemoEventTarget Target)
 {
-    public string TargetLabel =>
-        BroadcastToEveryone ? "Everyone" :
-        !string.IsNullOrWhiteSpace(UserId) ? $"User:{UserId}" :
-        !string.IsNullOrWhiteSpace(TargetRole) ? $"Role:{TargetRole}" :
-        "All";
+    public string TargetLabel => Target.Label;
 }
 
 public static class DemoUserCatalog
@@ -91,16 +126,14 @@ public static class DemoEventFactory
     {
         var type = Enum.GetValues<DemoEventType>()[Random.Next(Enum.GetValues<DemoEventType>().Length)];
         var user = DemoUserCatalog.Users[Random.Next(DemoUserCatalog.Users.Count)];
+        var strategy = Random.Next(4);
 
-        return type switch
+        return strategy switch
         {
-            DemoEventType.OrderCreated => new DemoEvent(Guid.NewGuid(), DemoEventType.OrderCreated, null, null, DateTimeOffset.Now, "Order created for all users.", false),
-            DemoEventType.ShipmentDelayed => new DemoEvent(Guid.NewGuid(), DemoEventType.ShipmentDelayed, null, "Operator", DateTimeOffset.Now, "Shipment delayed for operators.", false),
-            DemoEventType.PaymentReceived => new DemoEvent(Guid.NewGuid(), DemoEventType.PaymentReceived, user.Id, null, DateTimeOffset.Now, $"Payment received for {user.Name}.", false),
-            DemoEventType.MaintenanceStarted => new DemoEvent(Guid.NewGuid(), DemoEventType.MaintenanceStarted, null, null, DateTimeOffset.Now, "Maintenance started for all users.", false),
-            DemoEventType.SystemAlert => new DemoEvent(Guid.NewGuid(), DemoEventType.SystemAlert, null, "Finance", DateTimeOffset.Now, "System alert for finance.", false),
-            DemoEventType.UserNotification => new DemoEvent(Guid.NewGuid(), DemoEventType.UserNotification, user.Id, null, DateTimeOffset.Now, $"Personal notification for {user.Name}.", false),
-            _ => new DemoEvent(Guid.NewGuid(), DemoEventType.OrderCreated, null, null, DateTimeOffset.Now, "Random demo event.", false)
+            0 => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"User-targeted {type} event for {user.Name}.", DemoEventTarget.User(user.Id)),
+            1 => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"Role-targeted {type} event for Operator.", DemoEventTarget.Role("Operator")),
+            2 => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"Event-type targeted {type} event for subscribers.", DemoEventTarget.EventType(type)),
+            _ => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"Broadcast {type} event to everyone.", DemoEventTarget.Broadcast())
         };
     }
 
@@ -110,34 +143,34 @@ public static class DemoEventFactory
         {
             DemoScenario.NormalOperations =>
             [
-                new(Guid.NewGuid(), DemoEventType.OrderCreated, null, null, DateTimeOffset.Now, "Order created for all users."),
-                new(Guid.NewGuid(), DemoEventType.OrderCreated, null, null, DateTimeOffset.Now, "Second order created for all users."),
-                new(Guid.NewGuid(), DemoEventType.ShipmentDelayed, null, "Operator", DateTimeOffset.Now, "Shipment delayed for operators."),
-                new(Guid.NewGuid(), DemoEventType.PaymentReceived, "Alice", null, DateTimeOffset.Now, "Payment received for Alice.")
+                new(Guid.NewGuid(), DemoEventType.OrderCreated, DateTimeOffset.Now, "Order created notification for order subscribers.", DemoEventTarget.EventType(DemoEventType.OrderCreated)),
+                new(Guid.NewGuid(), DemoEventType.OrderCreated, DateTimeOffset.Now, "Second order update for order subscribers.", DemoEventTarget.EventType(DemoEventType.OrderCreated)),
+                new(Guid.NewGuid(), DemoEventType.ShipmentDelayed, DateTimeOffset.Now, "Shipment delayed for operators.", DemoEventTarget.Role("Operator")),
+                new(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.Now, "Payment received for Alice.", DemoEventTarget.User("Alice"))
             ],
             DemoScenario.OperationsIncident =>
             [
-                new(Guid.NewGuid(), DemoEventType.ShipmentDelayed, null, "Operator", DateTimeOffset.Now, "Shipment delayed for operators."),
-                new(Guid.NewGuid(), DemoEventType.SystemAlert, null, "Operator", DateTimeOffset.Now, "System alert for operators."),
-                new(Guid.NewGuid(), DemoEventType.MaintenanceStarted, null, null, DateTimeOffset.Now, "Maintenance work started.")
+                new(Guid.NewGuid(), DemoEventType.ShipmentDelayed, DateTimeOffset.Now, "Shipment delayed for operators.", DemoEventTarget.Role("Operator")),
+                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "System alert for operators.", DemoEventTarget.Role("Operator")),
+                new(Guid.NewGuid(), DemoEventType.MaintenanceStarted, DateTimeOffset.Now, "Maintenance started for maintenance subscribers.", DemoEventTarget.EventType(DemoEventType.MaintenanceStarted))
             ],
             DemoScenario.PaymentIncident =>
             [
-                new(Guid.NewGuid(), DemoEventType.PaymentReceived, "Alice", null, DateTimeOffset.Now, "Payment received for Alice."),
-                new(Guid.NewGuid(), DemoEventType.PaymentReceived, "Bob", null, DateTimeOffset.Now, "Payment received for Bob."),
-                new(Guid.NewGuid(), DemoEventType.SystemAlert, null, "Finance", DateTimeOffset.Now, "Finance alert: payment issue detected.")
+                new(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.Now, "Payment received for Alice.", DemoEventTarget.User("Alice")),
+                new(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.Now, "Payment received for Bob.", DemoEventTarget.User("Bob")),
+                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "Finance alert: payment issue detected.", DemoEventTarget.Role("Finance"))
             ],
             DemoScenario.UserNotification =>
             [
-                new(Guid.NewGuid(), DemoEventType.UserNotification, "Alice", null, DateTimeOffset.Now, "Alice received a user notification.")
+                new(Guid.NewGuid(), DemoEventType.UserNotification, DateTimeOffset.Now, "Alice received a user notification.", DemoEventTarget.User("Alice"))
             ],
             DemoScenario.AlertFinance =>
             [
-                new(Guid.NewGuid(), DemoEventType.SystemAlert, null, "Finance", DateTimeOffset.Now, "Finance alert issued.")
+                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "Finance alert issued.", DemoEventTarget.Role("Finance"))
             ],
             DemoScenario.BroadcastEmergency =>
             [
-                new(Guid.NewGuid(), DemoEventType.SystemAlert, null, null, DateTimeOffset.Now, "Emergency broadcast to everyone.", true)
+                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "Emergency broadcast to everyone.", DemoEventTarget.Broadcast())
             ],
             _ => [CreateRandomEvent()]
         };

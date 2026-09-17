@@ -30,20 +30,11 @@ public sealed class SseConnectionState
 public sealed class SseConnectionRegistry
 {
     private readonly ConcurrentDictionary<string, SseConnectionState> _connections = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, HashSet<string>> _userConnections = new(StringComparer.OrdinalIgnoreCase);
 
     public SseConnectionState Register(string connectionKey, string userId)
     {
         var state = _connections.GetOrAdd(connectionKey, _ => new SseConnectionState { UserId = userId });
         state.UserId = userId;
-
-        _userConnections.AddOrUpdate(userId,
-            _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase) { connectionKey },
-            (_, ids) =>
-            {
-                ids.Add(connectionKey);
-                return ids;
-            });
 
         return state;
     }
@@ -53,33 +44,45 @@ public sealed class SseConnectionRegistry
         if (_connections.TryRemove(connectionKey, out var state))
         {
             state.Complete();
+        }
+    }
 
-            if (_userConnections.TryGetValue(state.UserId, out var ids))
+    public IEnumerable<SseConnectionState> GetAllConnections() => _connections.Values;
+
+    public IEnumerable<SseConnectionState> GetConnectionsForUser(string userId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+
+        foreach (var state in _connections.Values)
+        {
+            if (string.Equals(state.UserId, userId, StringComparison.OrdinalIgnoreCase))
             {
-                ids.Remove(connectionKey);
-                if (ids.Count == 0)
-                {
-                    _userConnections.TryRemove(state.UserId, out _);
-                }
+                yield return state;
             }
         }
     }
 
-    public IEnumerable<SseConnectionState> GetTargets(DemoEvent demoEvent)
+    public IEnumerable<SseConnectionState> GetConnectionsForRole(string role)
     {
-        var eventType = demoEvent.Type.ToFriendlyName();
+        ArgumentException.ThrowIfNullOrWhiteSpace(role);
 
         foreach (var state in _connections.Values)
         {
             var user = DemoUserCatalog.Get(state.UserId);
-            var matchesUser = !string.IsNullOrWhiteSpace(demoEvent.UserId) &&
-                              string.Equals(state.UserId, demoEvent.UserId, StringComparison.OrdinalIgnoreCase);
-            var matchesRole = !string.IsNullOrWhiteSpace(demoEvent.TargetRole) &&
-                              user is not null &&
-                              string.Equals(user.Role, demoEvent.TargetRole, StringComparison.OrdinalIgnoreCase);
-            var matchesEventType = state.EventTypes.Contains(eventType);
+            if (user is not null && string.Equals(user.Role, role, StringComparison.OrdinalIgnoreCase))
+            {
+                yield return state;
+            }
+        }
+    }
 
-            if (demoEvent.BroadcastToEveryone || matchesUser || matchesRole || matchesEventType)
+    public IEnumerable<SseConnectionState> GetConnectionsForEventType(string eventType)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
+
+        foreach (var state in _connections.Values)
+        {
+            if (state.EventTypes.Contains(eventType))
             {
                 yield return state;
             }

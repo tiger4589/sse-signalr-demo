@@ -2,12 +2,10 @@ namespace DemoShared;
 
 public abstract record DemoEventMessage(DemoEvent Event);
 
-public sealed record OrderCreatedMessage(DemoEvent Event) : DemoEventMessage(Event);
-public sealed record ShipmentDelayedMessage(DemoEvent Event) : DemoEventMessage(Event);
-public sealed record PaymentReceivedMessage(DemoEvent Event) : DemoEventMessage(Event);
-public sealed record MaintenanceStartedMessage(DemoEvent Event) : DemoEventMessage(Event);
-public sealed record SystemAlertMessage(DemoEvent Event) : DemoEventMessage(Event);
-public sealed record UserNotificationMessage(DemoEvent Event) : DemoEventMessage(Event);
+public sealed record UserTargetedEventMessage(DemoEvent Event, string UserId) : DemoEventMessage(Event);
+public sealed record RoleTargetedEventMessage(DemoEvent Event, string Role) : DemoEventMessage(Event);
+public sealed record EventTypeTargetedEventMessage(DemoEvent Event, string EventType) : DemoEventMessage(Event);
+public sealed record BroadcastEventMessage(DemoEvent Event) : DemoEventMessage(Event);
 
 public static class DemoEventMessageFactory
 {
@@ -15,15 +13,28 @@ public static class DemoEventMessageFactory
     {
         ArgumentNullException.ThrowIfNull(demoEvent);
 
-        return demoEvent.Type switch
+        return demoEvent.Target.Kind switch
         {
-            DemoEventType.OrderCreated => new OrderCreatedMessage(demoEvent),
-            DemoEventType.ShipmentDelayed => new ShipmentDelayedMessage(demoEvent),
-            DemoEventType.PaymentReceived => new PaymentReceivedMessage(demoEvent),
-            DemoEventType.MaintenanceStarted => new MaintenanceStartedMessage(demoEvent),
-            DemoEventType.SystemAlert => new SystemAlertMessage(demoEvent),
-            DemoEventType.UserNotification => new UserNotificationMessage(demoEvent),
-            _ => new OrderCreatedMessage(demoEvent)
+            DemoTargetKind.User => new UserTargetedEventMessage(demoEvent, RequireTargetValue(demoEvent.Target, DemoTargetKind.User)),
+            DemoTargetKind.Role => new RoleTargetedEventMessage(demoEvent, RequireTargetValue(demoEvent.Target, DemoTargetKind.Role)),
+            DemoTargetKind.EventType => new EventTypeTargetedEventMessage(demoEvent, RequireTargetValue(demoEvent.Target, DemoTargetKind.EventType)),
+            DemoTargetKind.Broadcast => new BroadcastEventMessage(demoEvent),
+            _ => throw new InvalidOperationException($"Unsupported target kind '{demoEvent.Target.Kind}'.")
         };
+    }
+
+    private static string RequireTargetValue(DemoEventTarget target, DemoTargetKind expectedKind)
+    {
+        if (target.Kind != expectedKind)
+        {
+            throw new InvalidOperationException($"Expected target kind '{expectedKind}' but got '{target.Kind}'.");
+        }
+
+        if (string.IsNullOrWhiteSpace(target.Value))
+        {
+            throw new InvalidOperationException($"Target value is required for '{expectedKind}'.");
+        }
+
+        return target.Value;
     }
 }

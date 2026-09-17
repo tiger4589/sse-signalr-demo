@@ -13,12 +13,44 @@ public sealed class SseMessageDispatcher
         _logger = logger;
     }
 
-    public Task DispatchAsync(DemoEvent demoEvent, CancellationToken cancellationToken)
+    public Task DispatchAsync(UserTargetedEventMessage message, CancellationToken cancellationToken) =>
+        DispatchToTargetsAsync(
+            message.Event,
+            _registry.GetConnectionsForUser(message.UserId),
+            $"user:{message.UserId}",
+            cancellationToken);
+
+    public Task DispatchAsync(RoleTargetedEventMessage message, CancellationToken cancellationToken) =>
+        DispatchToTargetsAsync(
+            message.Event,
+            _registry.GetConnectionsForRole(message.Role),
+            $"role:{message.Role}",
+            cancellationToken);
+
+    public Task DispatchAsync(EventTypeTargetedEventMessage message, CancellationToken cancellationToken) =>
+        DispatchToTargetsAsync(
+            message.Event,
+            _registry.GetConnectionsForEventType(message.EventType),
+            $"event-type:{message.EventType}",
+            cancellationToken);
+
+    public Task DispatchAsync(BroadcastEventMessage message, CancellationToken cancellationToken) =>
+        DispatchToTargetsAsync(
+            message.Event,
+            _registry.GetAllConnections(),
+            "broadcast",
+            cancellationToken);
+
+    private Task DispatchToTargetsAsync(
+        DemoEvent demoEvent,
+        IEnumerable<SseConnectionState> targetConnections,
+        string targetDescription,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var targets = _registry.GetTargets(demoEvent).Distinct().ToList();
-        _logger.LogInformation("[SSE] Evaluating {EventType} for {Count} connection(s)", demoEvent.Type, targets.Count);
+        var targets = targetConnections.ToList();
+        _logger.LogInformation("[SSE] Sending {EventType} to {Target} ({Count} connection(s))", demoEvent.Type, targetDescription, targets.Count);
 
         foreach (var connection in targets)
         {

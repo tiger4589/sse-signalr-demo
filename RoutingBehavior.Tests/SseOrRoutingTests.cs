@@ -6,82 +6,52 @@ namespace RoutingBehavior.Tests;
 public class SseOrRoutingTests
 {
     [Fact]
-    public void RoleMatch_DeliversWithoutEventTypeSubscription()
+    public void RoleTarget_ReturnsMatchingRoleConnections()
     {
         var registry = new SseConnectionRegistry();
         var state = registry.Register("conn-role", "Diana");
 
-        var demoEvent = new DemoEvent(
-            Guid.NewGuid(),
-            DemoEventType.SystemAlert,
-            null,
-            "Finance",
-            DateTimeOffset.UtcNow,
-            "Finance alert");
-
-        var targets = registry.GetTargets(demoEvent).ToList();
+        var targets = registry.GetConnectionsForRole("Finance").ToList();
 
         Assert.Contains(state, targets);
     }
 
     [Fact]
-    public void EventTypeMatch_DeliversAcrossDifferentRole()
+    public void EventTypeTarget_ReturnsSubscribedConnections()
     {
         var registry = new SseConnectionRegistry();
         var state = registry.Register("conn-event-type", "Bob");
         registry.UpdateEventType("conn-event-type", "Shipments", selected: true);
 
-        var demoEvent = new DemoEvent(
-            Guid.NewGuid(),
-            DemoEventType.ShipmentDelayed,
-            null,
-            null,
-            DateTimeOffset.UtcNow,
-            "Shipment delayed");
-
-        var targets = registry.GetTargets(demoEvent).ToList();
+        var targets = registry.GetConnectionsForEventType("Shipments").ToList();
 
         Assert.Contains(state, targets);
     }
 
     [Fact]
-    public void UserTargetedEventAlsoDeliversToMatchingUser()
+    public void UserTarget_ReturnsOnlyMatchingUserConnections()
     {
         var registry = new SseConnectionRegistry();
         var alice = registry.Register("conn-alice", "Alice");
         var charlie = registry.Register("conn-charlie", "Charlie");
 
-        var demoEvent = new DemoEvent(
-            Guid.NewGuid(),
-            DemoEventType.ShipmentDelayed,
-            "Alice",
-            null,
-            DateTimeOffset.UtcNow,
-            "Shipment event with explicit user target");
-
-        var targets = registry.GetTargets(demoEvent).ToList();
+        var targets = registry.GetConnectionsForUser("Alice").ToList();
 
         Assert.Contains(alice, targets);
         Assert.DoesNotContain(charlie, targets);
     }
 
     [Fact]
-    public void MultipleMatchingAxes_DoNotDuplicateSingleConnection()
+    public void BroadcastTarget_ReturnsAllConnections()
     {
         var registry = new SseConnectionRegistry();
-        var state = registry.Register("conn-dedup", "Alice");
-        registry.UpdateEventType("conn-dedup", "Orders", selected: true);
+        var alice = registry.Register("conn-alice", "Alice");
+        var bob = registry.Register("conn-bob", "Bob");
 
-        var demoEvent = new DemoEvent(
-            Guid.NewGuid(),
-            DemoEventType.OrderCreated,
-            "Alice",
-            "Operator",
-            DateTimeOffset.UtcNow,
-            "Order created for Alice");
+        var targets = registry.GetAllConnections().ToList();
 
-        var targets = registry.GetTargets(demoEvent).ToList();
-
-        Assert.Equal(1, targets.Count(target => ReferenceEquals(target, state)));
+        Assert.Contains(alice, targets);
+        Assert.Contains(bob, targets);
+        Assert.Equal(2, targets.Count);
     }
 }

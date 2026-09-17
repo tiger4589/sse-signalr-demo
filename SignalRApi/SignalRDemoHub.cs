@@ -15,6 +15,10 @@ public sealed class SignalRDemoHub : Hub
     public override async Task OnConnectedAsync()
     {
         var userId = Context.GetHttpContext()?.Request.Query["userId"].ToString();
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            userId = "Alice";
+        }
 
         var user = DemoUserCatalog.Get(userId);
         await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroupNames.User(userId));
