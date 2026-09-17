@@ -2,11 +2,19 @@ using DemoShared;
 using System.Net.ServerSentEvents;
 using SseApi;
 using Wolverine;
+using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Host.UseWolverine();
+builder.Host.UseWolverine(options =>
+{
+    options.UseRabbitMqUsingNamedConnection("rabbitmq")
+        .AutoProvision()
+        .DeclareExchange("demo-events", exchange => exchange.BindQueue("sse-demo-events"));
+
+    options.ListenToRabbitQueue("sse-demo-events");
+});
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {

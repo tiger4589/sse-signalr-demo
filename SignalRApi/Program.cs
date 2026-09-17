@@ -1,11 +1,19 @@
 using DemoShared;
 using SignalRApi;
 using Wolverine;
+using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Host.UseWolverine();
+builder.Host.UseWolverine(options =>
+{
+    options.UseRabbitMqUsingNamedConnection("rabbitmq")
+        .AutoProvision()
+        .DeclareExchange("demo-events", exchange => exchange.BindQueue("signalr-demo-events"));
+
+    options.ListenToRabbitQueue("signalr-demo-events");
+});
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {

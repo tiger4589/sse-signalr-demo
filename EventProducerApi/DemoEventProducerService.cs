@@ -1,6 +1,7 @@
 using DemoShared;
 using Microsoft.Extensions.DependencyInjection;
 using Wolverine;
+using Wolverine.Runtime;
 
 namespace EventProducerApi;
 
@@ -24,7 +25,6 @@ public sealed class DemoEventProducerService : BackgroundService
         {
             using var scope = _scopeFactory.CreateScope();
             var messageBus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
-
             var demoEvent = DemoEventFactory.CreateRandomEvent();
             var message = DemoEventMessageFactory.Create(demoEvent);
             await messageBus.PublishAsync(message);

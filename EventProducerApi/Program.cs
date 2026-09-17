@@ -1,11 +1,19 @@
 using DemoShared;
 using EventProducerApi;
 using Wolverine;
+using Wolverine.RabbitMQ;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Host.UseWolverine();
+builder.Host.UseWolverine(options =>
+{
+    options.UseRabbitMqUsingNamedConnection("rabbitmq")
+        .AutoProvision()
+        .DeclareExchange("demo-events");
+
+    options.PublishAllMessages().ToRabbitExchange("demo-events");
+});
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
@@ -26,7 +34,6 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
-builder.Services.Configure<EventTargetOptions>(builder.Configuration.GetSection(EventTargetOptions.SectionName));
 builder.Services.AddHostedService<DemoEventProducerService>();
 
 var app = builder.Build();
@@ -48,23 +55,25 @@ app.MapGet("/demo-settings", () => Results.Ok(new
     eventTypes = Enum.GetNames<DemoEventType>()
 }));
 
-app.MapPost("/simulator/scenario/{scenario}", async (string scenario, EventFanOutPublisher publisher, ILoggerFactory loggerFactory, CancellationToken cancellationToken) =>
+app.MapPost("/simulator/scenario/{scenario}", async (string scenario, IMessageBus messageBus, ILoggerFactory loggerFactory, CancellationToken cancellationToken) =>
 {
     var selected = Enum.TryParse<DemoScenario>(scenario, true, out var parsed) ? parsed : DemoScenario.NormalOperations;
     var events = DemoEventFactory.BuildScenario(selected);
     foreach (var demoEvent in events)
     {
-        await publisher.PublishAsync(demoEvent, cancellationToken);
+        var message = DemoEventMessageFactory.Create(demoEvent);
+        await messageBus.PublishAsync(message);
     }
 
     loggerFactory.CreateLogger("Simulator").LogInformation("[Producer] Scenario {Scenario} published {Count} event(s).", scenario, events.Count);
     return Results.Ok(new { scenario, count = events.Count });
 });
 
-app.MapPost("/simulator/random", async (EventFanOutPublisher publisher, CancellationToken cancellationToken) =>
+app.MapPost("/simulator/random", async (IMessageBus messageBus, CancellationToken cancellationToken) =>
 {
     var demoEvent = DemoEventFactory.CreateRandomEvent();
-    await publisher.PublishAsync(demoEvent, cancellationToken);
+    var message = DemoEventMessageFactory.Create(demoEvent);
+    await messageBus.PublishAsync(message);
     return Results.Ok(demoEvent);
 });
 

@@ -7,7 +7,6 @@ namespace SseApi;
 
 public sealed class SseConnectionState
 {
-    public Guid ConnectionId { get; } = Guid.NewGuid();
     public string UserId { get; set; } = string.Empty;
     public HashSet<string> EventTypes { get; } = new(StringComparer.OrdinalIgnoreCase);
     private readonly Channel<SseItem<DemoEvent>> _events = Channel.CreateUnbounded<SseItem<DemoEvent>>(new UnboundedChannelOptions
