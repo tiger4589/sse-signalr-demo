@@ -1,5 +1,4 @@
 using DemoShared;
-using Microsoft.AspNetCore.SignalR;
 using SignalRApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,7 +45,6 @@ app.MapGet("/healthcheck", () => Results.Ok(new { status = "ok", service = "Sign
 app.MapGet("/demo-users", () => DemoUserCatalog.Users);
 app.MapGet("/demo-settings", () => Results.Ok(new
 {
-    warehouses = DemoWarehouseCatalog.Warehouses,
     eventTypes = Enum.GetNames<DemoEventType>()
 }));
 

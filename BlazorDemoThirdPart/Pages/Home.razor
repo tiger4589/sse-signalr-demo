@@ -31,19 +31,8 @@
             <div class="meta-row"><strong>Status:</strong> <span class="status @(_signalrStatus == "Connected" ? "connected" : "offline")">@_signalrStatus</span></div>
 
             <div class="group-box">
-                <h3>Warehouses</h3>
-                <div class="helper-text">Any selected warehouse or event type can match delivery.</div>
-                @foreach (var warehouse in DemoWarehouseCatalog.Warehouses)
-                {
-                    <label class="check-item">
-                        <input type="checkbox" checked="@_signalrWarehouses.Contains(warehouse)" @onchange="() => ToggleSignalRWarehouseAsync(warehouse)" />
-                        <span>@warehouse</span>
-                    </label>
-                }
-            </div>
-
-            <div class="group-box">
                 <h3>Event Types</h3>
+                <div class="helper-text">Events are routed by user, role, and selected event type.</div>
                 @foreach (var eventType in Enum.GetNames<DemoEventType>())
                 {
                     var friendlyName = eventType.ToFriendlyEventTypeName();
@@ -60,7 +49,6 @@
                     <div class="event-item @(demoEvent.UserId == SignalRUserId ? "relevant" : "normal")">
                         <div class="event-time">@demoEvent.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
                         <div class="event-name">@demoEvent.Type</div>
-                        <div class="event-meta">Warehouse: @(demoEvent.Warehouse ?? "—")</div>
                         <div class="event-meta">Target: @(demoEvent.TargetLabel)</div>
                         <div class="event-message">@demoEvent.Message</div>
                     </div>
@@ -75,19 +63,8 @@
             <div class="meta-row"><strong>Status:</strong> <span class="status @(_sseStatus == "Connected" ? "connected" : "offline")">@_sseStatus</span></div>
 
             <div class="group-box">
-                <h3>Warehouses</h3>
-                <div class="helper-text">Any selected warehouse or event type can match delivery.</div>
-                @foreach (var warehouse in DemoWarehouseCatalog.Warehouses)
-                {
-                    <label class="check-item">
-                        <input type="checkbox" checked="@_sseWarehouses.Contains(warehouse)" @onchange="() => ToggleSseWarehouseAsync(warehouse)" />
-                        <span>@warehouse</span>
-                    </label>
-                }
-            </div>
-
-            <div class="group-box">
                 <h3>Event Types</h3>
+                <div class="helper-text">Events are routed by user, role, and selected event type.</div>
                 @foreach (var eventType in Enum.GetNames<DemoEventType>())
                 {
                     var friendlyName = eventType.ToFriendlyEventTypeName();
@@ -104,7 +81,6 @@
                     <div class="event-item @(demoEvent.UserId == SseUserId ? "relevant" : "normal")">
                         <div class="event-time">@demoEvent.Timestamp.ToLocalTime().ToString("HH:mm:ss")</div>
                         <div class="event-name">@demoEvent.Type</div>
-                        <div class="event-meta">Warehouse: @(demoEvent.Warehouse ?? "—")</div>
                         <div class="event-meta">Target: @(demoEvent.TargetLabel)</div>
                         <div class="event-message">@demoEvent.Message</div>
                     </div>
@@ -275,7 +251,7 @@
     private readonly Dictionary<string, string> ScenarioButtons = new()
     {
         ["NormalOperations"] = "Normal Operations",
-        ["BrusselsIncident"] = "Brussels Incident",
+        ["OperationsIncident"] = "Operations Incident",
         ["PaymentIncident"] = "Payment Incident",
         ["UserNotification"] = "Notify Alice",
         ["AlertFinance"] = "Alert Finance",
@@ -283,9 +259,7 @@
         ["Random"] = "Generate Random Event"
     };
 
-    private readonly HashSet<string> _signalrWarehouses = new(StringComparer.OrdinalIgnoreCase) { "Brussels" };
     private readonly HashSet<string> _signalrEventTypes = new(StringComparer.OrdinalIgnoreCase) { "Orders", "Shipments", "System Alerts" };
-    private readonly HashSet<string> _sseWarehouses = new(StringComparer.OrdinalIgnoreCase) { "Antwerp" };
     private readonly HashSet<string> _sseEventTypes = new(StringComparer.OrdinalIgnoreCase) { "Orders", "Shipments", "System Alerts" };
 
     private HubConnection? _signalrConnection;
@@ -303,7 +277,7 @@
         var user = DemoUserCatalog.Get(userId);
         return user is null
             ? userId
-            : $"{user.Name} ({user.Role}, {user.Warehouse})";
+            : $"{user.Name} ({user.Role})";
     }
 
     private static string SignalRUserSummary => BuildUserSummary(SignalRUserId);
@@ -351,11 +325,6 @@
         await _signalrConnection.StartAsync();
         _signalrConnectionId = _signalrConnection.ConnectionId ?? "n/a";
         _signalrStatus = "Connected";
-
-        foreach (var warehouse in _signalrWarehouses)
-        {
-            await _signalrConnection.InvokeAsync("JoinWarehouse", warehouse);
-        }
 
         foreach (var eventType in _signalrEventTypes)
         {
@@ -443,18 +412,13 @@
             return;
         }
 
-        foreach (var warehouse in _sseWarehouses)
-        {
-            await UpdateSseSubscriptionAsync(warehouse, eventType: null, selected: true);
-        }
-
         foreach (var eventType in _sseEventTypes)
         {
-            await UpdateSseSubscriptionAsync(warehouse: null, eventType, selected: true);
+            await UpdateSseSubscriptionAsync(eventType, selected: true);
         }
     }
 
-    private async Task UpdateSseSubscriptionAsync(string? warehouse, string? eventType, bool selected)
+    private async Task UpdateSseSubscriptionAsync(string eventType, bool selected)
     {
         if (string.IsNullOrWhiteSpace(_sseConnectionId) || _sseConnectionId == "n/a")
         {
@@ -462,41 +426,13 @@
         }
 
         var query = $"?userId={Uri.EscapeDataString(SseUserId)}&connectionId={Uri.EscapeDataString(_sseConnectionId)}";
-        if (!string.IsNullOrWhiteSpace(warehouse))
-        {
-            query += $"&warehouse={Uri.EscapeDataString(warehouse)}";
-        }
-
-        if (!string.IsNullOrWhiteSpace(eventType))
-        {
-            query += $"&eventType={Uri.EscapeDataString(eventType)}";
-        }
+        query += $"&eventType={Uri.EscapeDataString(eventType)}";
 
         using var response = await Http.SendAsync(new HttpRequestMessage(
             selected ? HttpMethod.Post : HttpMethod.Delete,
             $"{SseUrl}/events/subscriptions{query}"));
 
         response.EnsureSuccessStatusCode();
-    }
-
-    private async Task ToggleSignalRWarehouseAsync(string warehouse)
-    {
-        if (_signalrConnection is null)
-        {
-            return;
-        }
-
-        var isSelected = !_signalrWarehouses.Contains(warehouse);
-        if (isSelected)
-        {
-            _signalrWarehouses.Add(warehouse);
-            await _signalrConnection.InvokeAsync("JoinWarehouse", warehouse);
-        }
-        else
-        {
-            _signalrWarehouses.Remove(warehouse);
-            await _signalrConnection.InvokeAsync("LeaveWarehouse", warehouse);
-        }
     }
 
     private async Task ToggleSignalREventTypeAsync(string eventType)
@@ -519,26 +455,6 @@
         }
     }
 
-    private async Task ToggleSseWarehouseAsync(string warehouse)
-    {
-        if (string.IsNullOrWhiteSpace(_sseConnectionId) || _sseConnectionId == "n/a")
-        {
-            return;
-        }
-
-        var isSelected = !_sseWarehouses.Contains(warehouse);
-        if (isSelected)
-        {
-            _sseWarehouses.Add(warehouse);
-        }
-        else
-        {
-            _sseWarehouses.Remove(warehouse);
-        }
-
-        await UpdateSseSubscriptionAsync(warehouse, eventType: null, isSelected);
-    }
-
     private async Task ToggleSseEventTypeAsync(string eventType)
     {
         if (string.IsNullOrWhiteSpace(_sseConnectionId) || _sseConnectionId == "n/a")
@@ -556,7 +472,7 @@
             _sseEventTypes.Remove(eventType);
         }
 
-        await UpdateSseSubscriptionAsync(warehouse: null, eventType, isSelected);
+        await UpdateSseSubscriptionAsync(eventType, isSelected);
     }
 
     private async Task TriggerScenarioAsync(string scenario)

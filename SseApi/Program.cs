@@ -43,11 +43,6 @@ app.UseCors("AllowLocalBlazor");
 app.MapGet("/events", (HttpContext httpContext, SseConnectionRegistry registry) =>
 {
     var userId = httpContext.Request.Query["userId"].ToString();
-    if (string.IsNullOrWhiteSpace(userId))
-    {
-        userId = "Alice";
-    }
-
     var connectionId = httpContext.Request.Query["connectionId"].ToString();
     if (string.IsNullOrWhiteSpace(connectionId))
     {
@@ -77,7 +72,7 @@ app.MapGet("/events", (HttpContext httpContext, SseConnectionRegistry registry) 
     return TypedResults.ServerSentEvents(StreamEvents(state, connectionId, httpContext.RequestAborted));
 });
 
-app.MapPost("/events/subscriptions", (string userId, string? warehouse, string? eventType, SseConnectionRegistry registry, HttpContext httpContext) =>
+app.MapPost("/events/subscriptions", (string userId, string? eventType, SseConnectionRegistry registry, HttpContext httpContext) =>
 {
     var connectionId = httpContext.Request.Query["connectionId"].ToString();
     if (string.IsNullOrWhiteSpace(connectionId))
@@ -85,25 +80,17 @@ app.MapPost("/events/subscriptions", (string userId, string? warehouse, string? 
         return Results.BadRequest(new { error = "Missing connectionId." });
     }
 
-    if (string.IsNullOrWhiteSpace(warehouse) && string.IsNullOrWhiteSpace(eventType))
+    if (string.IsNullOrWhiteSpace(eventType))
     {
-        return Results.BadRequest(new { error = "Provide at least one filter: warehouse or eventType." });
+        return Results.BadRequest(new { error = "Provide eventType." });
     }
 
-    if (!string.IsNullOrWhiteSpace(warehouse))
-    {
-        registry.UpdateWarehouse(connectionId, warehouse, true);
-    }
+    registry.UpdateEventType(connectionId, eventType, true);
 
-    if (!string.IsNullOrWhiteSpace(eventType))
-    {
-        registry.UpdateEventType(connectionId, eventType, true);
-    }
-
-    return Results.Ok(new { userId, warehouse, eventType, status = "subscribed" });
+    return Results.Ok(new { userId, eventType, status = "subscribed" });
 });
 
-app.MapDelete("/events/subscriptions", (string userId, string? warehouse, string? eventType, SseConnectionRegistry registry, HttpContext httpContext) =>
+app.MapDelete("/events/subscriptions", (string userId, string? eventType, SseConnectionRegistry registry, HttpContext httpContext) =>
 {
     var connectionId = httpContext.Request.Query["connectionId"].ToString();
     if (string.IsNullOrWhiteSpace(connectionId))
@@ -111,22 +98,14 @@ app.MapDelete("/events/subscriptions", (string userId, string? warehouse, string
         return Results.BadRequest(new { error = "Missing connectionId." });
     }
 
-    if (string.IsNullOrWhiteSpace(warehouse) && string.IsNullOrWhiteSpace(eventType))
+    if (string.IsNullOrWhiteSpace(eventType))
     {
-        return Results.BadRequest(new { error = "Provide at least one filter: warehouse or eventType." });
+        return Results.BadRequest(new { error = "Provide eventType." });
     }
 
-    if (!string.IsNullOrWhiteSpace(warehouse))
-    {
-        registry.UpdateWarehouse(connectionId, warehouse, false);
-    }
+    registry.UpdateEventType(connectionId, eventType, false);
 
-    if (!string.IsNullOrWhiteSpace(eventType))
-    {
-        registry.UpdateEventType(connectionId, eventType, false);
-    }
-
-    return Results.Ok(new { userId, warehouse, eventType, status = "unsubscribed" });
+    return Results.Ok(new { userId, eventType, status = "unsubscribed" });
 });
 
 #region HiddenForClarity
@@ -134,7 +113,6 @@ app.MapDelete("/events/subscriptions", (string userId, string? warehouse, string
 app.MapGet("/demo-users", () => DemoUserCatalog.Users);
 app.MapGet("/demo-settings", () => Results.Ok(new
 {
-    warehouses = DemoWarehouseCatalog.Warehouses,
     eventTypes = Enum.GetNames<DemoEventType>()
 }));
 
@@ -145,8 +123,5 @@ app.MapPost("/internal/events", async (DemoEvent demoEvent, SseMessageDispatcher
 });
 
 #endregion
-
-
-
 
 app.Run();

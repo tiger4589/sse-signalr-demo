@@ -44,7 +44,6 @@ app.MapGet("/healthcheck", () => Results.Ok(new { status = "ok", service = "Even
 app.MapGet("/demo-users", () => DemoUserCatalog.Users);
 app.MapGet("/demo-settings", () => Results.Ok(new
 {
-    warehouses = DemoWarehouseCatalog.Warehouses,
     eventTypes = Enum.GetNames<DemoEventType>()
 }));
 

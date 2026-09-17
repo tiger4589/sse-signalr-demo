@@ -15,10 +15,6 @@ public sealed class SignalRDemoHub : Hub
     public override async Task OnConnectedAsync()
     {
         var userId = Context.GetHttpContext()?.Request.Query["userId"].ToString();
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            userId = "Alice";
-        }
 
         var user = DemoUserCatalog.Get(userId);
         await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroupNames.User(userId));
@@ -36,32 +32,6 @@ public sealed class SignalRDemoHub : Hub
     {
         _logger.LogInformation("[SignalR] Connection closed for {ConnectionId}", Context.ConnectionId);
         await base.OnDisconnectedAsync(exception);
-    }
-
-    public async Task JoinWarehouse(string warehouse)
-    {
-        if (string.IsNullOrWhiteSpace(warehouse))
-        {
-            throw new HubException("Warehouse is required.");
-        }
-
-        var normalizedWarehouse = warehouse.Trim();
-        await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroupNames.Warehouse(normalizedWarehouse));
-
-        _logger.LogInformation("[SignalR] Connection {ConnectionId} joined warehouse:{Warehouse}", Context.ConnectionId, normalizedWarehouse);
-    }
-
-    public async Task LeaveWarehouse(string warehouse)
-    {
-        if (string.IsNullOrWhiteSpace(warehouse))
-        {
-            throw new HubException("Warehouse is required.");
-        }
-
-        var normalizedWarehouse = warehouse.Trim();
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, SignalRGroupNames.Warehouse(normalizedWarehouse));
-
-        _logger.LogInformation("[SignalR] Connection {ConnectionId} left warehouse:{Warehouse}", Context.ConnectionId, normalizedWarehouse);
     }
 
     public async Task SubscribeToEventType(string eventType)

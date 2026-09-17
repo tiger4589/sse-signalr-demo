@@ -36,11 +36,6 @@ public sealed class SignalRMessageDispatcher
         }
 
         var eventType = demoEvent.Type.ToFriendlyName();
-        if (!string.IsNullOrWhiteSpace(demoEvent.Warehouse))
-        {
-            groups.Add(SignalRGroupNames.Warehouse(demoEvent.Warehouse));
-        }
-
         groups.Add(SignalRGroupNames.EventType(eventType));
 
         var targetGroups = groups.ToList();

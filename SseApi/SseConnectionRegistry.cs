@@ -9,7 +9,6 @@ public sealed class SseConnectionState
 {
     public Guid ConnectionId { get; } = Guid.NewGuid();
     public string UserId { get; set; } = string.Empty;
-    public HashSet<string> Warehouses { get; } = new(StringComparer.OrdinalIgnoreCase);
     public HashSet<string> EventTypes { get; } = new(StringComparer.OrdinalIgnoreCase);
     private readonly Channel<SseItem<DemoEvent>> _events = Channel.CreateUnbounded<SseItem<DemoEvent>>(new UnboundedChannelOptions
     {
@@ -47,12 +46,6 @@ public sealed class SseConnectionRegistry
                 return ids;
             });
 
-        var user = DemoUserCatalog.Get(userId);
-        if (user is not null)
-        {
-            state.Warehouses.Add(user.Warehouse);
-        }
-
         return state;
     }
 
@@ -73,8 +66,6 @@ public sealed class SseConnectionRegistry
         }
     }
 
-    public IEnumerable<SseConnectionState> GetAll() => _connections.Values;
-
     public IEnumerable<SseConnectionState> GetTargets(DemoEvent demoEvent)
     {
         var eventType = demoEvent.Type.ToFriendlyName();
@@ -87,31 +78,12 @@ public sealed class SseConnectionRegistry
             var matchesRole = !string.IsNullOrWhiteSpace(demoEvent.TargetRole) &&
                               user is not null &&
                               string.Equals(user.Role, demoEvent.TargetRole, StringComparison.OrdinalIgnoreCase);
-            var matchesWarehouse = !string.IsNullOrWhiteSpace(demoEvent.Warehouse) &&
-                                   state.Warehouses.Contains(demoEvent.Warehouse);
             var matchesEventType = state.EventTypes.Contains(eventType);
 
-            if (demoEvent.BroadcastToEveryone || matchesUser || matchesRole || matchesWarehouse || matchesEventType)
+            if (demoEvent.BroadcastToEveryone || matchesUser || matchesRole || matchesEventType)
             {
                 yield return state;
             }
-        }
-    }
-
-    public void UpdateWarehouse(string connectionKey, string warehouse, bool selected)
-    {
-        if (!_connections.TryGetValue(connectionKey, out var state))
-        {
-            return;
-        }
-
-        if (selected)
-        {
-            state.Warehouses.Add(warehouse);
-        }
-        else
-        {
-            state.Warehouses.Remove(warehouse);
         }
     }
 

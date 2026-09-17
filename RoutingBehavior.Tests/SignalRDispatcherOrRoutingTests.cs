@@ -26,11 +26,10 @@ public class SignalRDispatcherOrRoutingTests
         var demoEvent = new DemoEvent(
             Guid.NewGuid(),
             DemoEventType.ShipmentDelayed,
-            "Brussels",
             "Alice",
             "Operator",
             DateTimeOffset.UtcNow,
-            "Brussels shipment delayed");
+            "Shipment delayed");
 
         await dispatcher.DispatchAsync(demoEvent, CancellationToken.None);
 
@@ -40,7 +39,6 @@ public class SignalRDispatcherOrRoutingTests
             {
                 "user:alice",
                 "role:operator",
-                "warehouse:brussels",
                 "event-type:shipments"
             },
             capturedGroups!.ToHashSet(StringComparer.OrdinalIgnoreCase));
@@ -68,7 +66,6 @@ public class SignalRDispatcherOrRoutingTests
         var demoEvent = new DemoEvent(
             Guid.NewGuid(),
             DemoEventType.SystemAlert,
-            null,
             null,
             null,
             DateTimeOffset.UtcNow,

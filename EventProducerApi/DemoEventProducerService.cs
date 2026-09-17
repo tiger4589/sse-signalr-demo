@@ -22,7 +22,7 @@ public sealed class DemoEventProducerService : BackgroundService
         {
             var demoEvent = DemoEventFactory.CreateRandomEvent();
             await _publisher.PublishAsync(demoEvent, stoppingToken);
-            _logger.LogInformation("[Producer] Random event: {EventType} -> {Warehouse}", demoEvent.Type, demoEvent.Warehouse ?? "All");
+            _logger.LogInformation("[Producer] Random event: {EventType} -> {Target}", demoEvent.Type, demoEvent.TargetLabel);
         }
     }
 }

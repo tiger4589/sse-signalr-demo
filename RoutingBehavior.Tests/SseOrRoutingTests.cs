@@ -6,19 +6,18 @@ namespace RoutingBehavior.Tests;
 public class SseOrRoutingTests
 {
     [Fact]
-    public void WarehouseMatch_DeliversWithoutEventTypeSubscription()
+    public void RoleMatch_DeliversWithoutEventTypeSubscription()
     {
         var registry = new SseConnectionRegistry();
-        var state = registry.Register("conn-warehouse", "Alice");
+        var state = registry.Register("conn-role", "Diana");
 
         var demoEvent = new DemoEvent(
             Guid.NewGuid(),
-            DemoEventType.ShipmentDelayed,
-            "Brussels",
+            DemoEventType.SystemAlert,
             null,
-            null,
+            "Finance",
             DateTimeOffset.UtcNow,
-            "Brussels shipment delayed");
+            "Finance alert");
 
         var targets = registry.GetTargets(demoEvent).ToList();
 
@@ -26,7 +25,7 @@ public class SseOrRoutingTests
     }
 
     [Fact]
-    public void EventTypeMatch_DeliversAcrossDifferentWarehouse()
+    public void EventTypeMatch_DeliversAcrossDifferentRole()
     {
         var registry = new SseConnectionRegistry();
         var state = registry.Register("conn-event-type", "Bob");
@@ -35,11 +34,10 @@ public class SseOrRoutingTests
         var demoEvent = new DemoEvent(
             Guid.NewGuid(),
             DemoEventType.ShipmentDelayed,
-            "Brussels",
             null,
             null,
             DateTimeOffset.UtcNow,
-            "Brussels shipment delayed");
+            "Shipment delayed");
 
         var targets = registry.GetTargets(demoEvent).ToList();
 
@@ -47,7 +45,7 @@ public class SseOrRoutingTests
     }
 
     [Fact]
-    public void PureGlobalOr_UserTargetedEventAlsoDeliversOnWarehouseMatch()
+    public void UserTargetedEventAlsoDeliversToMatchingUser()
     {
         var registry = new SseConnectionRegistry();
         var alice = registry.Register("conn-alice", "Alice");
@@ -56,16 +54,15 @@ public class SseOrRoutingTests
         var demoEvent = new DemoEvent(
             Guid.NewGuid(),
             DemoEventType.ShipmentDelayed,
-            "Brussels",
             "Alice",
             null,
             DateTimeOffset.UtcNow,
-            "Brussels event with explicit user target");
+            "Shipment event with explicit user target");
 
         var targets = registry.GetTargets(demoEvent).ToList();
 
         Assert.Contains(alice, targets);
-        Assert.Contains(charlie, targets);
+        Assert.DoesNotContain(charlie, targets);
     }
 
     [Fact]
@@ -78,11 +75,10 @@ public class SseOrRoutingTests
         var demoEvent = new DemoEvent(
             Guid.NewGuid(),
             DemoEventType.OrderCreated,
-            "Brussels",
             "Alice",
             "Operator",
             DateTimeOffset.UtcNow,
-            "Order created in Brussels");
+            "Order created for Alice");
 
         var targets = registry.GetTargets(demoEvent).ToList();
 
