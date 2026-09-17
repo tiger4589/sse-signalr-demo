@@ -50,10 +50,4 @@ app.MapGet("/demo-settings", () => Results.Ok(new
     eventTypes = Enum.GetNames<DemoEventType>()
 }));
 
-app.MapPost("/internal/events", async (DemoEvent demoEvent, SignalRMessageDispatcher dispatcher, CancellationToken cancellationToken) =>
-{
-    await dispatcher.DispatchAsync(demoEvent, cancellationToken);
-    return Results.Accepted();
-});
-
 app.Run();

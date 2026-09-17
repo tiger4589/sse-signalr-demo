@@ -118,12 +118,6 @@ app.MapGet("/demo-settings", () => Results.Ok(new
     eventTypes = Enum.GetNames<DemoEventType>()
 }));
 
-app.MapPost("/internal/events", async (DemoEvent demoEvent, SseMessageDispatcher dispatcher, CancellationToken cancellationToken) =>
-{
-    await dispatcher.DispatchAsync(demoEvent, cancellationToken);
-    return Results.Accepted();
-});
-
 #endregion
 
 app.Run();

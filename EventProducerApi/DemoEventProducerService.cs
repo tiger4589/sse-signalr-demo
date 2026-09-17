@@ -1,15 +1,17 @@
 using DemoShared;
+using Microsoft.Extensions.DependencyInjection;
+using Wolverine;
 
 namespace EventProducerApi;
 
 public sealed class DemoEventProducerService : BackgroundService
 {
-    private readonly EventFanOutPublisher _publisher;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<DemoEventProducerService> _logger;
 
-    public DemoEventProducerService(EventFanOutPublisher publisher, ILogger<DemoEventProducerService> logger)
+    public DemoEventProducerService(IServiceScopeFactory scopeFactory, ILogger<DemoEventProducerService> logger)
     {
-        _publisher = publisher;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -20,8 +22,12 @@ public sealed class DemoEventProducerService : BackgroundService
 
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
+            using var scope = _scopeFactory.CreateScope();
+            var messageBus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+
             var demoEvent = DemoEventFactory.CreateRandomEvent();
-            await _publisher.PublishAsync(demoEvent, stoppingToken);
+            var message = DemoEventMessageFactory.Create(demoEvent);
+            await messageBus.PublishAsync(message);
             _logger.LogInformation("[Producer] Random event: {EventType} -> {Target}", demoEvent.Type, demoEvent.TargetLabel);
         }
     }
