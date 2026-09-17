@@ -1,9 +1,11 @@
 using DemoShared;
 using EventProducerApi;
+using Wolverine;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.Host.UseWolverine();
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
@@ -25,7 +27,6 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.Configure<EventTargetOptions>(builder.Configuration.GetSection(EventTargetOptions.SectionName));
-builder.Services.AddHttpClient<EventFanOutPublisher>();
 builder.Services.AddHostedService<DemoEventProducerService>();
 
 var app = builder.Build();

@@ -1,9 +1,11 @@
 using DemoShared;
 using SignalRApi;
+using Wolverine;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.Host.UseWolverine();
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {

@@ -1,10 +1,12 @@
 using DemoShared;
 using System.Net.ServerSentEvents;
 using SseApi;
+using Wolverine;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+builder.Host.UseWolverine();
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
