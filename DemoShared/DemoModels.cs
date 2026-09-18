@@ -127,17 +127,19 @@ public static class DemoEventTypeExtensions
 public static class DemoEventFactory
 {
     private static readonly Random Random = new();
+    private static readonly string[] RoleTargets = ["Operator", "Manager"];
 
     public static DemoEvent CreateRandomEvent()
     {
         var type = Enum.GetValues<DemoEventType>()[Random.Next(Enum.GetValues<DemoEventType>().Length)];
         var user = DemoUserCatalog.Users[Random.Next(DemoUserCatalog.Users.Count)];
+        var role = RoleTargets[Random.Next(RoleTargets.Length)];
         var strategy = Random.Next(4);
 
         return strategy switch
         {
             0 => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"User-targeted {type} event for {user.Name}.", DemoEventTarget.User(user.Id)),
-            1 => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"Role-targeted {type} event for Operator.", DemoEventTarget.Role("Operator")),
+            1 => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"Role-targeted {type} event for {role}.", DemoEventTarget.Role(role)),
             2 => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"Event-type targeted {type} event for subscribers.", DemoEventTarget.EventType(type)),
             _ => new DemoEvent(Guid.NewGuid(), type, DateTimeOffset.Now, $"Broadcast {type} event to everyone.", DemoEventTarget.Broadcast())
         };
