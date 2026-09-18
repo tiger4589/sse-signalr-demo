@@ -48,16 +48,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowLocalBlazor");
 
-app.MapGet("/healthcheck", () => Results.Ok(new { status = "ok", service = "EventProducer" }));
-app.MapGet("/demo-users", () => DemoUserCatalog.Users);
-app.MapGet("/demo-settings", () => Results.Ok(new
+app.MapPost("/simulator/scenario/{scenario}", async (string scenario, IMessageBus messageBus, ILoggerFactory loggerFactory) =>
 {
-    eventTypes = Enum.GetNames<DemoEventType>()
-}));
-
-app.MapPost("/simulator/scenario/{scenario}", async (string scenario, IMessageBus messageBus, ILoggerFactory loggerFactory, CancellationToken cancellationToken) =>
-{
-    var selected = Enum.TryParse<DemoScenario>(scenario, true, out var parsed) ? parsed : DemoScenario.NormalOperations;
+    var selected = Enum.TryParse<DemoScenario>(scenario, true, out var parsed) ? parsed : DemoScenario.Orders;
     var events = DemoEventFactory.BuildScenario(selected);
     foreach (var demoEvent in events)
     {
@@ -67,14 +60,6 @@ app.MapPost("/simulator/scenario/{scenario}", async (string scenario, IMessageBu
 
     loggerFactory.CreateLogger("Simulator").LogInformation("[Producer] Scenario {Scenario} published {Count} event(s).", scenario, events.Count);
     return Results.Ok(new { scenario, count = events.Count });
-});
-
-app.MapPost("/simulator/random", async (IMessageBus messageBus, CancellationToken cancellationToken) =>
-{
-    var demoEvent = DemoEventFactory.CreateRandomEvent();
-    var message = DemoEventMessageFactory.Create(demoEvent);
-    await messageBus.PublishAsync(message);
-    return Results.Ok(demoEvent);
 });
 
 app.Run();

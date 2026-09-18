@@ -58,12 +58,6 @@ public sealed class SignalRDemoHub : Hub
         _logger.LogInformation("[SignalR] Connection {ConnectionId} unsubscribed from {EventType}", Context.ConnectionId, normalizedEventType);
     }
 
-    public Task<string> GetConnectionInfo()
-    {
-        var userId = GetCurrentUserId();
-        return Task.FromResult($"{userId}:{Context.ConnectionId}");
-    }
-
     private string GetCurrentUserId() =>
         string.IsNullOrWhiteSpace(Context.UserIdentifier) ? "Alice" : Context.UserIdentifier;
 }

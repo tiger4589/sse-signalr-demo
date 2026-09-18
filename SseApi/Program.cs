@@ -118,14 +118,4 @@ app.MapDelete("/events/subscriptions", (string userId, string? eventType, SseCon
     return Results.Ok(new { userId, eventType, status = "unsubscribed" });
 });
 
-#region HiddenForClarity
-
-app.MapGet("/demo-users", () => DemoUserCatalog.Users);
-app.MapGet("/demo-settings", () => Results.Ok(new
-{
-    eventTypes = Enum.GetNames<DemoEventType>()
-}));
-
-#endregion
-
 app.Run();

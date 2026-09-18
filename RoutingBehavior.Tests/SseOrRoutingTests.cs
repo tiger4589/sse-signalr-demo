@@ -9,9 +9,9 @@ public class SseOrRoutingTests
     public void RoleTarget_ReturnsMatchingRoleConnections()
     {
         var registry = new SseConnectionRegistry();
-        var state = registry.Register("conn-role", "Diana");
+        var state = registry.Register("conn-role", "Charlie");
 
-        var targets = registry.GetConnectionsForRole("Finance").ToList();
+        var targets = registry.GetConnectionsForRole("Manager").ToList();
 
         Assert.Contains(state, targets);
     }
@@ -20,7 +20,7 @@ public class SseOrRoutingTests
     public void EventTypeTarget_ReturnsSubscribedConnections()
     {
         var registry = new SseConnectionRegistry();
-        var state = registry.Register("conn-event-type", "Bob");
+        var state = registry.Register("conn-event-type", "Alice");
         registry.UpdateEventType("conn-event-type", "Shipments", selected: true);
 
         var targets = registry.GetConnectionsForEventType("Shipments").ToList();
@@ -46,12 +46,12 @@ public class SseOrRoutingTests
     {
         var registry = new SseConnectionRegistry();
         var alice = registry.Register("conn-alice", "Alice");
-        var bob = registry.Register("conn-bob", "Bob");
+        var charlie = registry.Register("conn-charlie", "Charlie");
 
         var targets = registry.GetAllConnections().ToList();
 
         Assert.Contains(alice, targets);
-        Assert.Contains(bob, targets);
+        Assert.Contains(charlie, targets);
         Assert.Equal(2, targets.Count);
     }
 }

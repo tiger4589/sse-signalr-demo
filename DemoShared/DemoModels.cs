@@ -12,19 +12,14 @@ public enum DemoEventType
 
 public enum DemoScenario
 {
-    NormalOperations,
-    OperationsIncident,
-    PaymentIncident,
-    UserNotification,
-    AlertFinance,
-    BroadcastEmergency,
     Orders,
     Shipments,
     Payments,
     Maintenance,
     SystemAlerts,
+    UserNotification,
     NotifyCharlie,
-    Random
+    BroadcastEmergency
 }
 
 public sealed record DemoUser(
@@ -90,10 +85,7 @@ public static class DemoUserCatalog
     public static readonly IReadOnlyList<DemoUser> Users =
     [
         new("Alice", "Alice", "Operator"),
-        new("Bob", "Bob", "Operator"),
-        new("Charlie", "Charlie", "Manager"),
-        new("Diana", "Diana", "Finance"),
-        new("Admin", "Admin", "Administrator")
+        new("Charlie", "Charlie", "Manager")
     ];
 
     public static DemoUser? Get(string? userId) =>
@@ -113,15 +105,6 @@ public static class DemoEventTypeExtensions
         _ => type.ToString()
     };
 
-    public static string ToFriendlyEventTypeName(this string eventTypeName)
-    {
-        if (Enum.TryParse<DemoEventType>(eventTypeName, true, out var parsed))
-        {
-            return parsed.ToFriendlyName();
-        }
-
-        return eventTypeName;
-    }
 }
 
 public static class DemoEventFactory
@@ -169,25 +152,6 @@ public static class DemoEventFactory
             [
                 new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "System alert event for system alert subscribers.", DemoEventTarget.EventType(DemoEventType.SystemAlert))
             ],
-            DemoScenario.NormalOperations =>
-            [
-                new(Guid.NewGuid(), DemoEventType.OrderCreated, DateTimeOffset.Now, "Order created notification for order subscribers.", DemoEventTarget.EventType(DemoEventType.OrderCreated)),
-                new(Guid.NewGuid(), DemoEventType.OrderCreated, DateTimeOffset.Now, "Second order update for order subscribers.", DemoEventTarget.EventType(DemoEventType.OrderCreated)),
-                new(Guid.NewGuid(), DemoEventType.ShipmentDelayed, DateTimeOffset.Now, "Shipment delayed for operators.", DemoEventTarget.Role("Operator")),
-                new(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.Now, "Payment received for Alice.", DemoEventTarget.User("Alice"))
-            ],
-            DemoScenario.OperationsIncident =>
-            [
-                new(Guid.NewGuid(), DemoEventType.ShipmentDelayed, DateTimeOffset.Now, "Shipment delayed for operators.", DemoEventTarget.Role("Operator")),
-                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "System alert for operators.", DemoEventTarget.Role("Operator")),
-                new(Guid.NewGuid(), DemoEventType.MaintenanceStarted, DateTimeOffset.Now, "Maintenance started for maintenance subscribers.", DemoEventTarget.EventType(DemoEventType.MaintenanceStarted))
-            ],
-            DemoScenario.PaymentIncident =>
-            [
-                new(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.Now, "Payment received for Alice.", DemoEventTarget.User("Alice")),
-                new(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.Now, "Payment received for Bob.", DemoEventTarget.User("Bob")),
-                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "Finance alert: payment issue detected.", DemoEventTarget.Role("Finance"))
-            ],
             DemoScenario.UserNotification =>
             [
                 new(Guid.NewGuid(), DemoEventType.UserNotification, DateTimeOffset.Now, "Alice received a user notification.", DemoEventTarget.User("Alice"))
@@ -195,10 +159,6 @@ public static class DemoEventFactory
             DemoScenario.NotifyCharlie =>
             [
                 new(Guid.NewGuid(), DemoEventType.UserNotification, DateTimeOffset.Now, "Charlie received a user notification.", DemoEventTarget.User("Charlie"))
-            ],
-            DemoScenario.AlertFinance =>
-            [
-                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "Finance alert issued.", DemoEventTarget.Role("Finance"))
             ],
             DemoScenario.BroadcastEmergency =>
             [
