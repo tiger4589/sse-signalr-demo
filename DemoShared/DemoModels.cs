@@ -17,6 +17,8 @@ public enum DemoScenario
     Payments,
     Maintenance,
     SystemAlerts,
+    NotifyOperatorRole,
+    NotifyManagerRole,
     UserNotification,
     NotifyCharlie,
     BroadcastEmergency
@@ -151,6 +153,14 @@ public static class DemoEventFactory
             DemoScenario.SystemAlerts =>
             [
                 new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "System alert event for system alert subscribers.", DemoEventTarget.EventType(DemoEventType.SystemAlert))
+            ],
+            DemoScenario.NotifyOperatorRole =>
+            [
+                new(Guid.NewGuid(), DemoEventType.UserNotification, DateTimeOffset.Now, "Operator role received a role-targeted notification.", DemoEventTarget.Role("Operator"))
+            ],
+            DemoScenario.NotifyManagerRole =>
+            [
+                new(Guid.NewGuid(), DemoEventType.UserNotification, DateTimeOffset.Now, "Manager role received a role-targeted notification.", DemoEventTarget.Role("Manager"))
             ],
             DemoScenario.UserNotification =>
             [

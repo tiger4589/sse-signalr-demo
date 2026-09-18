@@ -6,6 +6,16 @@ namespace RoutingBehavior.Tests;
 public class SseOrRoutingTests
 {
     [Fact]
+    public void Register_AssignsCatalogRoleOnConnection()
+    {
+        var registry = new SseConnectionRegistry();
+
+        var state = registry.Register("conn-charlie", "Charlie");
+
+        Assert.Contains("Manager", state.Roles);
+    }
+
+    [Fact]
     public void RoleTarget_ReturnsMatchingRoleConnections()
     {
         var registry = new SseConnectionRegistry();

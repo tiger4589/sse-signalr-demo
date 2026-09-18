@@ -8,6 +8,7 @@ namespace SseApi;
 public sealed class SseConnectionState
 {
     public string UserId { get; set; } = string.Empty;
+    public HashSet<string> Roles { get; } = new(StringComparer.OrdinalIgnoreCase);
     public HashSet<string> EventTypes { get; } = new(StringComparer.OrdinalIgnoreCase);
     private readonly Channel<SseItem<DemoEvent>> _events = Channel.CreateUnbounded<SseItem<DemoEvent>>(new UnboundedChannelOptions
     {
@@ -35,6 +36,13 @@ public sealed class SseConnectionRegistry
     {
         var state = _connections.GetOrAdd(connectionKey, _ => new SseConnectionState { UserId = userId });
         state.UserId = userId;
+        state.Roles.Clear();
+
+        var userRole = DemoUserCatalog.Get(userId)?.Role;
+        if (!string.IsNullOrWhiteSpace(userRole))
+        {
+            state.Roles.Add(Normalize(userRole));
+        }
 
         return state;
     }
@@ -65,11 +73,11 @@ public sealed class SseConnectionRegistry
     public IEnumerable<SseConnectionState> GetConnectionsForRole(string role)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(role);
+        var normalizedRole = Normalize(role);
 
         foreach (var state in _connections.Values)
         {
-            var user = DemoUserCatalog.Get(state.UserId);
-            if (user is not null && string.Equals(user.Role, role, StringComparison.OrdinalIgnoreCase))
+            if (state.Roles.Contains(normalizedRole))
             {
                 yield return state;
             }
@@ -96,13 +104,16 @@ public sealed class SseConnectionRegistry
             return;
         }
 
+        var normalizedEventType = Normalize(eventType);
         if (selected)
         {
-            state.EventTypes.Add(eventType);
+            state.EventTypes.Add(normalizedEventType);
         }
         else
         {
-            state.EventTypes.Remove(eventType);
+            state.EventTypes.Remove(normalizedEventType);
         }
     }
+
+    private static string Normalize(string value) => value.Trim();
 }
