@@ -14,14 +14,8 @@ public sealed class SignalRDemoHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        var userId = Context.GetHttpContext()?.Request.Query["userId"].ToString();
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            userId = "Alice";
-        }
-
+        var userId = GetCurrentUserId();
         var user = DemoUserCatalog.Get(userId);
-        await Groups.AddToGroupAsync(Context.ConnectionId, SignalRGroupNames.User(userId));
 
         if (!string.IsNullOrWhiteSpace(user?.Role))
         {
@@ -66,12 +60,10 @@ public sealed class SignalRDemoHub : Hub
 
     public Task<string> GetConnectionInfo()
     {
-        var userId = Context.GetHttpContext()?.Request.Query["userId"].ToString();
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            userId = "Alice";
-        }
-
+        var userId = GetCurrentUserId();
         return Task.FromResult($"{userId}:{Context.ConnectionId}");
     }
+
+    private string GetCurrentUserId() =>
+        string.IsNullOrWhiteSpace(Context.UserIdentifier) ? "Alice" : Context.UserIdentifier;
 }

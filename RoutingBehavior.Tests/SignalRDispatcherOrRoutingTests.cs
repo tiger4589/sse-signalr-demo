@@ -9,27 +9,27 @@ namespace RoutingBehavior.Tests;
 public class SignalRDispatcherOrRoutingTests
 {
     [Fact]
-    public async Task UserTargetedEvent_SendsToUserGroup()
+    public async Task UserTargetedEvent_SendsToUser()
     {
         var clients = new Mock<IHubClients>();
         var hubContext = new Mock<IHubContext<SignalRDemoHub>>();
         var proxy = new Mock<IClientProxy>();
-        var logger = new Mock<ILogger<SignalRMessageDispatcher>>();
-        string? capturedGroup = null;
+        var logger = new Mock<ILogger<UserTargetedSignalRConsumer>>();
+        string? capturedUserId = null;
 
-        clients.Setup(x => x.Group(It.IsAny<string>()))
-            .Callback<string>(group => capturedGroup = group)
+        clients.Setup(x => x.User(It.IsAny<string>()))
+            .Callback<string>(userId => capturedUserId = userId)
             .Returns(proxy.Object);
         hubContext.SetupGet(x => x.Clients).Returns(clients.Object);
 
-        var dispatcher = new SignalRMessageDispatcher(hubContext.Object, logger.Object);
         var demoEvent = new DemoEvent(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.UtcNow, "Payment received for Alice", DemoEventTarget.User("Alice"));
         var message = new UserTargetedEventMessage(demoEvent, "Alice");
 
-        await dispatcher.DispatchAsync(message, CancellationToken.None);
+        await UserTargetedSignalRConsumer.Handle(message, hubContext.Object, logger.Object, CancellationToken.None);
 
-        Assert.Equal("user:alice", capturedGroup);
+        Assert.Equal("Alice", capturedUserId);
 
+        clients.Verify(x => x.Group(It.IsAny<string>()), Times.Never);
         proxy.Verify(
             x => x.SendCoreAsync(
                 "ReceiveEvent",
@@ -44,7 +44,7 @@ public class SignalRDispatcherOrRoutingTests
         var clients = new Mock<IHubClients>();
         var hubContext = new Mock<IHubContext<SignalRDemoHub>>();
         var proxy = new Mock<IClientProxy>();
-        var logger = new Mock<ILogger<SignalRMessageDispatcher>>();
+        var logger = new Mock<ILogger<RoleTargetedSignalRConsumer>>();
         string? capturedGroup = null;
 
         clients.Setup(x => x.Group(It.IsAny<string>()))
@@ -52,11 +52,10 @@ public class SignalRDispatcherOrRoutingTests
             .Returns(proxy.Object);
         hubContext.SetupGet(x => x.Clients).Returns(clients.Object);
 
-        var dispatcher = new SignalRMessageDispatcher(hubContext.Object, logger.Object);
         var demoEvent = new DemoEvent(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.UtcNow, "Finance alert", DemoEventTarget.Role("Finance"));
         var message = new RoleTargetedEventMessage(demoEvent, "Finance");
 
-        await dispatcher.DispatchAsync(message, CancellationToken.None);
+        await RoleTargetedSignalRConsumer.Handle(message, hubContext.Object, logger.Object, CancellationToken.None);
 
         Assert.Equal("role:finance", capturedGroup);
 
@@ -74,7 +73,7 @@ public class SignalRDispatcherOrRoutingTests
         var clients = new Mock<IHubClients>();
         var hubContext = new Mock<IHubContext<SignalRDemoHub>>();
         var proxy = new Mock<IClientProxy>();
-        var logger = new Mock<ILogger<SignalRMessageDispatcher>>();
+        var logger = new Mock<ILogger<EventTypeTargetedSignalRConsumer>>();
         string? capturedGroup = null;
 
         clients.Setup(x => x.Group(It.IsAny<string>()))
@@ -82,11 +81,10 @@ public class SignalRDispatcherOrRoutingTests
             .Returns(proxy.Object);
         hubContext.SetupGet(x => x.Clients).Returns(clients.Object);
 
-        var dispatcher = new SignalRMessageDispatcher(hubContext.Object, logger.Object);
         var demoEvent = new DemoEvent(Guid.NewGuid(), DemoEventType.OrderCreated, DateTimeOffset.UtcNow, "Order update for subscribers", DemoEventTarget.EventType("Orders"));
         var message = new EventTypeTargetedEventMessage(demoEvent, "Orders");
 
-        await dispatcher.DispatchAsync(message, CancellationToken.None);
+        await EventTypeTargetedSignalRConsumer.Handle(message, hubContext.Object, logger.Object, CancellationToken.None);
 
         Assert.Equal("event-type:orders", capturedGroup);
 
@@ -104,16 +102,15 @@ public class SignalRDispatcherOrRoutingTests
         var clients = new Mock<IHubClients>();
         var hubContext = new Mock<IHubContext<SignalRDemoHub>>();
         var proxy = new Mock<IClientProxy>();
-        var logger = new Mock<ILogger<SignalRMessageDispatcher>>();
+        var logger = new Mock<ILogger<BroadcastSignalRConsumer>>();
 
         clients.SetupGet(x => x.All).Returns(proxy.Object);
         hubContext.SetupGet(x => x.Clients).Returns(clients.Object);
 
-        var dispatcher = new SignalRMessageDispatcher(hubContext.Object, logger.Object);
         var demoEvent = new DemoEvent(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.UtcNow, "Broadcast emergency", DemoEventTarget.Broadcast());
         var message = new BroadcastEventMessage(demoEvent);
 
-        await dispatcher.DispatchAsync(message, CancellationToken.None);
+        await BroadcastSignalRConsumer.Handle(message, hubContext.Object, logger.Object, CancellationToken.None);
 
         clients.Verify(x => x.Group(It.IsAny<string>()), Times.Never);
         proxy.Verify(

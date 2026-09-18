@@ -1,4 +1,5 @@
 using DemoShared;
+using Microsoft.AspNetCore.SignalR;
 using SignalRApi;
 using Wolverine;
 using Wolverine.RabbitMQ;
@@ -35,7 +36,7 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<SignalRMessageDispatcher>();
+builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
 
 var app = builder.Build();
 
