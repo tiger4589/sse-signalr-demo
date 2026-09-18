@@ -207,13 +207,29 @@
         }
 
         endpoint.Error = string.Empty;
-        endpoint.IsConnected = true;
-        StateHasChanged();
 
         var objRef = DotNetObjectReference.Create(this);
         referenceCache[id] = objRef;
 
-        await sseModule.InvokeVoidAsync("connect", id, endpoint.Url, objRef, "HandleMessage", "HandleError");
+        try
+        {
+            await sseModule.InvokeVoidAsync("connect", id, endpoint.Url, objRef, "HandleMessage", "HandleError");
+            endpoint.IsConnected = true;
+        }
+        catch
+        {
+            endpoint.IsConnected = false;
+
+            if (referenceCache.TryGetValue(id, out var reference))
+            {
+                reference.Dispose();
+                referenceCache.Remove(id);
+            }
+        }
+        finally
+        {
+            StateHasChanged();
+        }
     }
 
     private async Task StopEndpoint(string id)

@@ -4,17 +4,29 @@ export function connect(id, url, dotNetObject, messageCallback, errorCallback) {
     disconnect(id);
 
     const source = new EventSource(url);
+    let opened = false;
 
-    source.onmessage = (event) => {
-        dotNetObject.invokeMethodAsync(messageCallback, id, event.data);
-    };
+    return new Promise((resolve, reject) => {
+        source.onopen = () => {
+            opened = true;
+            resolve();
+        };
 
-    source.onerror = () => {
-        dotNetObject.invokeMethodAsync(errorCallback, id, `Connection failed or was closed for ${url}.`);
-        disconnect(id);
-    };
+        source.onmessage = (event) => {
+            dotNetObject.invokeMethodAsync(messageCallback, id, event.data);
+        };
 
-    connections[id] = source;
+        source.onerror = () => {
+            dotNetObject.invokeMethodAsync(errorCallback, id, `Connection failed or was closed for ${url}.`);
+            disconnect(id);
+
+            if (!opened) {
+                reject(new Error(`SSE connection failed before opening for ${url}.`));
+            }
+        };
+
+        connections[id] = source;
+    });
 }
 
 export function disconnect(id) {

@@ -9,7 +9,7 @@
 <PageTitle>SignalR vs SSE Demo</PageTitle>
 
 <div class="page-shell">
-    <h1>SignalR vs SSE Conference Demo</h1>
+    <h1>SignalR vs SSE Demo</h1>
 
     <div class="toolbar">
         <button class="primary" @onclick="ConnectBothAsync">Connect both</button>
@@ -17,9 +17,9 @@
     </div>
 
     <div class="scenario-row">
-        @foreach (var scenario in ScenarioButtons)
+        @foreach (var action in ActionButtons)
         {
-            <button @onclick="() => TriggerScenarioAsync(scenario.Key)">@scenario.Value</button>
+            <button @onclick="() => TriggerScenarioAsync(action.Scenario)">@action.Label</button>
         }
     </div>
 
@@ -33,12 +33,11 @@
             <div class="group-box">
                 <h3>Event Types</h3>
                 <div class="helper-text">Events are routed to exactly one target: user, role, event type, or broadcast.</div>
-                @foreach (var eventType in Enum.GetNames<DemoEventType>())
+                @foreach (var eventType in VisibleEventTypes)
                 {
-                    var friendlyName = eventType.ToFriendlyEventTypeName();
                     <label class="check-item">
-                        <input type="checkbox" checked="@_signalrEventTypes.Contains(friendlyName)" @onchange="() => ToggleSignalREventTypeAsync(friendlyName)" />
-                        <span>@friendlyName</span>
+                        <input type="checkbox" checked="@_signalrEventTypes.Contains(eventType)" @onchange="() => ToggleSignalREventTypeAsync(eventType)" />
+                        <span>@eventType</span>
                     </label>
                 }
             </div>
@@ -65,12 +64,11 @@
             <div class="group-box">
                 <h3>Event Types</h3>
                 <div class="helper-text">Events are routed to exactly one target: user, role, event type, or broadcast.</div>
-                @foreach (var eventType in Enum.GetNames<DemoEventType>())
+                @foreach (var eventType in VisibleEventTypes)
                 {
-                    var friendlyName = eventType.ToFriendlyEventTypeName();
                     <label class="check-item">
-                        <input type="checkbox" checked="@_sseEventTypes.Contains(friendlyName)" @onchange="() => ToggleSseEventTypeAsync(friendlyName)" />
-                        <span>@friendlyName</span>
+                        <input type="checkbox" checked="@_sseEventTypes.Contains(eventType)" @onchange="() => ToggleSseEventTypeAsync(eventType)" />
+                        <span>@eventType</span>
                     </label>
                 }
             </div>
@@ -245,22 +243,23 @@
     private const string SseUrl = "https://localhost:9003";
     private const string ProducerUrl = "https://localhost:9005";
     private const string SignalRUserId = "Alice";
-    private const string SseUserId = "Bob";
+    private const string SseUserId = "Charlie";
     private const string SseClientId = "thirdpart-sse";
 
-    private readonly Dictionary<string, string> ScenarioButtons = new()
-    {
-        ["NormalOperations"] = "Normal Operations",
-        ["OperationsIncident"] = "Operations Incident",
-        ["PaymentIncident"] = "Payment Incident",
-        ["UserNotification"] = "Notify Alice",
-        ["AlertFinance"] = "Alert Finance",
-        ["BroadcastEmergency"] = "Broadcast Emergency",
-        ["Random"] = "Generate Random Event"
-    };
+    private static readonly (string Scenario, string Label)[] ActionButtons =
+    [
+        ("Orders", "Orders"),
+        ("Shipments", "Shipments"),
+        ("Payments", "Payments"),
+        ("Maintenance", "Maintenance"),
+        ("SystemAlerts", "System Alerts"),
+        ("UserNotification", "Notify Alice"),
+        ("NotifyCharlie", $"Notify {DemoUserCatalog.Get(SseUserId)?.Name ?? SseUserId}"),
+        ("BroadcastEmergency", "Broadcast Emergency")
+    ];
 
     private readonly HashSet<string> _signalrEventTypes = new(StringComparer.OrdinalIgnoreCase) { "Orders", "Shipments", "System Alerts" };
-    private readonly HashSet<string> _sseEventTypes = new(StringComparer.OrdinalIgnoreCase) { "Orders", "Shipments", "System Alerts" };
+    private readonly HashSet<string> _sseEventTypes = new(StringComparer.OrdinalIgnoreCase) { "Payments", "Maintenance" };
 
     private HubConnection? _signalrConnection;
     private IJSObjectReference? _sseModule;
@@ -272,6 +271,14 @@
     private string _sseStatus = "Disconnected";
     private string _sseConnectionId = "n/a";
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly string[] VisibleEventTypes =
+    [
+        DemoEventType.OrderCreated.ToFriendlyName(),
+        DemoEventType.ShipmentDelayed.ToFriendlyName(),
+        DemoEventType.PaymentReceived.ToFriendlyName(),
+        DemoEventType.MaintenanceStarted.ToFriendlyName(),
+        DemoEventType.SystemAlert.ToFriendlyName()
+    ];
     private static string BuildUserSummary(string userId)
     {
         var user = DemoUserCatalog.Get(userId);
@@ -358,6 +365,8 @@
 
         try
         {
+            _sseStatus = "Connecting";
+            await InvokeAsync(StateHasChanged);
             _sseDotNetReference?.Dispose();
             _sseDotNetReference = DotNetObjectReference.Create(this);
             await _sseModule.InvokeVoidAsync("connect", SseClientId, sseUrl, _sseDotNetReference, "HandleSseMessage", "HandleSseError");
@@ -377,6 +386,7 @@
             _sseConnectionId = "n/a";
             _sseDotNetReference?.Dispose();
             _sseDotNetReference = null;
+            await InvokeAsync(StateHasChanged);
         }
     }
 

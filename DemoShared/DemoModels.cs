@@ -18,6 +18,12 @@ public enum DemoScenario
     UserNotification,
     AlertFinance,
     BroadcastEmergency,
+    Orders,
+    Shipments,
+    Payments,
+    Maintenance,
+    SystemAlerts,
+    NotifyCharlie,
     Random
 }
 
@@ -141,6 +147,26 @@ public static class DemoEventFactory
     {
         return scenario switch
         {
+            DemoScenario.Orders =>
+            [
+                new(Guid.NewGuid(), DemoEventType.OrderCreated, DateTimeOffset.Now, "Order created event for order subscribers.", DemoEventTarget.EventType(DemoEventType.OrderCreated))
+            ],
+            DemoScenario.Shipments =>
+            [
+                new(Guid.NewGuid(), DemoEventType.ShipmentDelayed, DateTimeOffset.Now, "Shipment delayed event for shipment subscribers.", DemoEventTarget.EventType(DemoEventType.ShipmentDelayed))
+            ],
+            DemoScenario.Payments =>
+            [
+                new(Guid.NewGuid(), DemoEventType.PaymentReceived, DateTimeOffset.Now, "Payment received event for payment subscribers.", DemoEventTarget.EventType(DemoEventType.PaymentReceived))
+            ],
+            DemoScenario.Maintenance =>
+            [
+                new(Guid.NewGuid(), DemoEventType.MaintenanceStarted, DateTimeOffset.Now, "Maintenance started event for maintenance subscribers.", DemoEventTarget.EventType(DemoEventType.MaintenanceStarted))
+            ],
+            DemoScenario.SystemAlerts =>
+            [
+                new(Guid.NewGuid(), DemoEventType.SystemAlert, DateTimeOffset.Now, "System alert event for system alert subscribers.", DemoEventTarget.EventType(DemoEventType.SystemAlert))
+            ],
             DemoScenario.NormalOperations =>
             [
                 new(Guid.NewGuid(), DemoEventType.OrderCreated, DateTimeOffset.Now, "Order created notification for order subscribers.", DemoEventTarget.EventType(DemoEventType.OrderCreated)),
@@ -163,6 +189,10 @@ public static class DemoEventFactory
             DemoScenario.UserNotification =>
             [
                 new(Guid.NewGuid(), DemoEventType.UserNotification, DateTimeOffset.Now, "Alice received a user notification.", DemoEventTarget.User("Alice"))
+            ],
+            DemoScenario.NotifyCharlie =>
+            [
+                new(Guid.NewGuid(), DemoEventType.UserNotification, DateTimeOffset.Now, "Charlie received a user notification.", DemoEventTarget.User("Charlie"))
             ],
             DemoScenario.AlertFinance =>
             [
