@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../BlazorDemoFirstPart/BlazorDemoFirstPart.csproj" />
+  <Project Path="../DotNet10Api/DotNet10Api.csproj" />
+  <Project Path="../DotNet9Api/DotNet9Api.csproj" />
+</Solution>
