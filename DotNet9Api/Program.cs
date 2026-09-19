@@ -1,3 +1,5 @@
+#region Nothing to see here. Look away.
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
@@ -30,6 +32,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowLocalBlazor");
+
+
+#endregion
 
 app.MapGet("/events", async context =>
 {

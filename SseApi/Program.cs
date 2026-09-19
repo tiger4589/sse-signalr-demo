@@ -1,3 +1,5 @@
+#region Haven't I warned you enough?
+
 using DemoShared;
 using System.Net.ServerSentEvents;
 using SseApi;
@@ -49,6 +51,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowLocalBlazor");
+
+
+#endregion
 
 app.MapGet("/events", (HttpContext httpContext, SseConnectionRegistry registry) =>
 {

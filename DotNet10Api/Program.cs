@@ -1,3 +1,5 @@
+#region Dangerous Zone, Do Not Enter
+
 using System.Runtime.CompilerServices;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +34,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowLocalBlazor");
+#endregion
 
 app.MapGet("/events", (CancellationToken cancellationToken) =>
 {

@@ -1,7 +1,5 @@
 using DemoShared;
-using Microsoft.Extensions.DependencyInjection;
 using Wolverine;
-using Wolverine.Runtime;
 
 namespace EventProducerApi;
 
